@@ -50,6 +50,13 @@ function writeAdminMsg() {
     writeToNodeWithId("#adminMsg", `Connected as admin: ${adminId}`)
 }
 
+type Player = {
+    url: string,
+    sessionId: string,
+    country: string,
+    playerId: string
+}
+
 async function connectToHub(restoreSession: boolean) {
     if (!restoreSession) {
         deleteCookie("AdminId")
@@ -60,12 +67,16 @@ async function connectToHub(restoreSession: boolean) {
         .build();
 
     // setup callbacks for connections
-    connection.on("messageReceived", (username: string, message: string) => {
+    connection.on("playersAdded", (players: Array<Player>) => {
+        console.log(players)
         const m = document.createElement("div");
 
-        m.innerHTML = `<div class="message-author">${username}</div><div>${message}<div>`;
+        const links = players.map(player => `<div class="message-author">${player.country}</div><div>${player.url}<div>`);
+        console.log(links)
 
+        m.innerHTML = links.reduce((a, b) => `${a}\n${b}`, "");
         divMessages?.appendChild(m);
+        
     });
 
 
@@ -90,7 +101,8 @@ btnConnect?.addEventListener("click", () => connectToHub(false));
 btnCont?.addEventListener("click", () => connectToHub(true));
 
 function send() {
-    connection.send("newMessage", username, tbMessage?.value)
+    const countries: string[] = tbMessage!.value.split(",")
+    connection.send("addPlayers", countries, "SessionId", "AdminId")
         .then(() => (tbMessage ? tbMessage.value = "" : null));
 
 
