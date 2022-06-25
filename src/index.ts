@@ -7,9 +7,11 @@ const tbMessage: HTMLInputElement | null = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement | null = document.querySelector("#btnSend");
 const btnConnect: HTMLButtonElement | null = document.querySelector("#btnConn");
 const btnCont: HTMLButtonElement | null = document.querySelector("#btnCont");
+const playerDiv: HTMLElement | null = document.querySelector("#playerDiv")
+
+let context: "Admin" | "User" = "Admin";
 
 
-const username = new Date().getTime();
 let connection: HubConnection;
 
 function writeToNodeWithId(id: string, message: string) {
@@ -37,12 +39,11 @@ function getUrlParams(): { [key: string]: string } {
     }));
 }
 
-function writeAdminMsg() {
-    const params = getUrlParams()
-    const user = params["user"]
 
-    if (user) {
-        writeToNodeWithId("#adminMsg", `Connected as user: ${user}`)
+
+function writeGreetMsg(context: "User"|"Admin") {
+    if (context == "User") {
+        writeToNodeWithId("#adminMsg", `Connected as user`);
         return;
     }
 
@@ -50,12 +51,10 @@ function writeAdminMsg() {
     writeToNodeWithId("#adminMsg", `Connected as admin: ${adminId}`)
 }
 
-type Player = {
-    url: string,
-    sessionId: string,
-    country: string,
-    playerId: string
-}
+
+
+
+
 
 async function connectToHub(restoreSession: boolean) {
     if (!restoreSession) {
@@ -66,45 +65,71 @@ async function connectToHub(restoreSession: boolean) {
         .withUrl("https://localhost:5001/hub")
         .build();
 
-    // setup callbacks for connections
-    connection.on("playersAdded", (players: Array<Player>) => {
-        console.log(players)
-        const m = document.createElement("div");
-
-        const links = players.map(player => `<div class="message-author">${player.country}</div><div>${player.url}<div>`);
-        console.log(links)
-
-        m.innerHTML = links.reduce((a, b) => `${a}\n${b}`, "");
-        divMessages?.appendChild(m);
-        
-    });
-
+    setupConnectionCallBacks(connection)
 
     try {
         await connection.start();
-        writeAdminMsg();
+        const params = getUrlParams();
+        connection.send("verifyPlayerSession", params["session"], params["player"])
     } catch (_) {
         writeToNodeWithId("#adminMsg", "Could not connect")
     }
 
 }
 
+type Player = {
+    url: string,
+    sessionId: string,
+    country: string,
+    playerId: string
+}
+
+function setupConnectionCallBacks(connection: signalR.HubConnection) {
+    // called by server when players are added 
+    connection.on("playersAdded", (players: Array<Player>) => {
+        console.log(players)
+        const m = document.createElement("div");
+
+        const links =
+            players.map(player => `<div class="message-author">${player.country}</div><div>${player.url}<div>`);
+
+        m.innerHTML = links.reduce((a, b) => `${a}\n${b}`, "");
+        divMessages?.appendChild(m);
+    });
+
+    connection.on("verifiedPlayerSession", (isPlayer: boolean) => {
+        if (isPlayer) {
+            context = "User"
+        }
+        else {
+            context = "Admin"
+        }
+        writeGreetMsg(context);
+    });
+
+
+
+
+}
+
 
 tbMessage?.addEventListener("keyup", (e: KeyboardEvent) => {
     if (e.key === "Enter") {
-        send();
+        createPlayers();
     }
 });
 
-btnSend?.addEventListener("click", send);
+btnSend?.addEventListener("click", createPlayers);
 btnConnect?.addEventListener("click", () => connectToHub(false));
 btnCont?.addEventListener("click", () => connectToHub(true));
 
-function send() {
+function createPlayers() {
     const countries: string[] = tbMessage!.value.split(",")
-    connection.send("addPlayers", countries, "SessionId", "AdminId")
+
+    const sessionId = getCookie("SessionId")
+    const adminId = getCookie("AdminId")
+
+    connection.send("addPlayers", countries, sessionId, adminId)
         .then(() => (tbMessage ? tbMessage.value = "" : null));
-
-
 }
 
