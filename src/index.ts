@@ -7,6 +7,7 @@ const tbMessage: HTMLInputElement | null = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement | null = document.querySelector("#btnSend");
 const btnConnect: HTMLButtonElement | null = document.querySelector("#btnConn");
 const btnCont: HTMLButtonElement | null = document.querySelector("#btnCont");
+const btnDebug: HTMLButtonElement | null = document.querySelector("#debug");
 const playerDiv: HTMLElement | null = document.querySelector("#playerDiv")
 
 let context: "Admin" | "User" = "Admin";
@@ -50,10 +51,6 @@ function writeGreetMsg(context: "User"|"Admin") {
     const adminId = getCookie("AdminId")
     writeToNodeWithId("#adminMsg", `Connected as admin: ${adminId}`)
 }
-
-
-
-
 
 
 async function connectToHub(restoreSession: boolean) {
@@ -106,10 +103,6 @@ function setupConnectionCallBacks(connection: signalR.HubConnection) {
         }
         writeGreetMsg(context);
     });
-
-
-
-
 }
 
 
@@ -122,6 +115,7 @@ tbMessage?.addEventListener("keyup", (e: KeyboardEvent) => {
 btnSend?.addEventListener("click", createPlayers);
 btnConnect?.addEventListener("click", () => connectToHub(false));
 btnCont?.addEventListener("click", () => connectToHub(true));
+btnDebug?.addEventListener("click", () => connection.send("debug"))
 
 function createPlayers() {
     const countries: string[] = tbMessage!.value.split(",")
