@@ -42,7 +42,7 @@ function getUrlParams(): { [key: string]: string } {
 
 
 
-function writeGreetMsg(context: "User"|"Admin") {
+function writeGreetMsg(context: "User" | "Admin") {
     if (context == "User") {
         writeToNodeWithId("#adminMsg", `Connected as user`);
         return;
@@ -53,7 +53,7 @@ function writeGreetMsg(context: "User"|"Admin") {
 }
 
 
-async function connectToHub(restoreSession: boolean) {
+async function connectAsAdmin(restoreSession: boolean) {
     if (!restoreSession) {
         deleteCookie("AdminId")
     }
@@ -72,6 +72,12 @@ async function connectToHub(restoreSession: boolean) {
         writeToNodeWithId("#adminMsg", "Could not connect")
     }
 
+}
+
+async function connectAsPlayer(restoreSession: boolean){
+    if (!restoreSession){
+
+    }
 }
 
 type Player = {
@@ -113,11 +119,12 @@ tbMessage?.addEventListener("keyup", (e: KeyboardEvent) => {
 });
 
 btnSend?.addEventListener("click", createPlayers);
-btnConnect?.addEventListener("click", () => connectToHub(false));
-btnCont?.addEventListener("click", () => connectToHub(true));
+btnConnect?.addEventListener("click", () => connectAsAdmin(false));
+btnCont?.addEventListener("click", () => connectAsAdmin(true));
 btnDebug?.addEventListener("click", () => connection.send("debug"))
 
 function createPlayers() {
+    console.log("hello");
     const countries: string[] = tbMessage!.value.split(",")
 
     const sessionId = getCookie("SessionId")
