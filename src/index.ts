@@ -5,8 +5,10 @@ import { HubConnection } from "@microsoft/signalr";
 const divMessages: HTMLDivElement | null = document.querySelector("#divMessages");
 const tbMessage: HTMLInputElement | null = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement | null = document.querySelector("#btnSend");
-const btnConnect: HTMLButtonElement | null = document.querySelector("#btnConn");
-const btnCont: HTMLButtonElement | null = document.querySelector("#btnCont");
+const btnConnectAdmin: HTMLButtonElement | null = document.querySelector("#btnConnAdmin");
+const btnContAdmin: HTMLButtonElement | null = document.querySelector("#btnContAdmin");
+const btnConnectPlayer: HTMLButtonElement | null = document.querySelector("#btnConnPlayer");
+const btnContPlayer: HTMLButtonElement | null = document.querySelector("#btnContPlayer");
 const btnDebug: HTMLButtonElement | null = document.querySelector("#debug");
 const playerDiv: HTMLElement | null = document.querySelector("#playerDiv")
 
@@ -59,7 +61,7 @@ async function connectAsAdmin(restoreSession: boolean) {
     }
 
     connection = new signalR.HubConnectionBuilder()
-        .withUrl("https://localhost:5001/hub")
+        .withUrl("https://localhost:5001/hub?key=value")
         .build();
 
     setupConnectionCallBacks(connection)
@@ -74,10 +76,19 @@ async function connectAsAdmin(restoreSession: boolean) {
 
 }
 
-async function connectAsPlayer(restoreSession: boolean){
-    if (!restoreSession){
+async function connectAsPlayer() {
+    const params = getUrlParams();
+    const player = params["player"];
+    const session = params["session"];
 
-    }
+    if (!session || !player) return;
+
+    connection = new signalR.HubConnectionBuilder()
+        .withUrl(`https://localhost:5001/hub?player=${params["player"]}&session={params["session"]}`)
+        .build();
+
+    setupConnectionCallBacks(connection)
+
 }
 
 type Player = {
@@ -119,8 +130,8 @@ tbMessage?.addEventListener("keyup", (e: KeyboardEvent) => {
 });
 
 btnSend?.addEventListener("click", createPlayers);
-btnConnect?.addEventListener("click", () => connectAsAdmin(false));
-btnCont?.addEventListener("click", () => connectAsAdmin(true));
+btnConnectAdmin?.addEventListener("click", () => connectAsAdmin(false));
+btnContAdmin?.addEventListener("click", () => connectAsAdmin(true));
 btnDebug?.addEventListener("click", () => connection.send("debug"))
 
 function createPlayers() {
