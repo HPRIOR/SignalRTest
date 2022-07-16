@@ -8,6 +8,8 @@ const btnSend: HTMLButtonElement | null = document.querySelector("#btnSend");
 const btnConnectAdmin: HTMLButtonElement | null = document.querySelector("#btnConnAdmin");
 const btnContAdmin: HTMLButtonElement | null = document.querySelector("#btnContAdmin");
 const btnDebug: HTMLButtonElement | null = document.querySelector("#debug");
+const btnInput: HTMLButtonElement | null = document.querySelector("#inputBtn")
+const textInput:HTMLInputElement | null = document.querySelector("#msgInpText")
 
 
 type Context = "Admin" | "Player";
@@ -19,6 +21,8 @@ function writeToNodeWithId(id: string, message: string) {
     const node: HTMLElement | null = document.querySelector(id);
     if (node) {
         node.innerHTML = message;
+    }else{
+        console.log(`Could not find node ${id}`)
     }
 }
 
@@ -107,6 +111,10 @@ function setupConnectionCallBacks(connection: signalR.HubConnection) {
     connection.on("verifiedSession", (type: Context) => {
         writeGreetMsg(type);
     })
+
+    connection.on("sendMessage", message => {
+        writeToNodeWithId("#msgDiv", message)
+    })
 }
 
 
@@ -120,6 +128,9 @@ btnSend?.addEventListener("click", createPlayers);
 btnDebug?.addEventListener("click", () => connection.send("debug"))
 btnConnectAdmin?.addEventListener("click", () => connectToSession(false));
 btnContAdmin?.addEventListener("click", () => connectToSession(true));
+btnInput?.addEventListener("click", () => {
+    connection.send("sendMessageToAdmin", getCookie("SessionId"),textInput?.value);
+})
 
 function createPlayers() {
     const countries: string[] = tbMessage!.value.split(",")
