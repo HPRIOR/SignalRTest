@@ -7,12 +7,10 @@ const tbMessage: HTMLInputElement | null = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement | null = document.querySelector("#btnSend");
 const btnConnectAdmin: HTMLButtonElement | null = document.querySelector("#btnConnAdmin");
 const btnContAdmin: HTMLButtonElement | null = document.querySelector("#btnContAdmin");
-const btnConnectPlayer: HTMLButtonElement | null = document.querySelector("#btnConnPlayer");
-const btnContPlayer: HTMLButtonElement | null = document.querySelector("#btnContPlayer");
 const btnDebug: HTMLButtonElement | null = document.querySelector("#debug");
-const playerDiv: HTMLElement | null = document.querySelector("#playerDiv")
 
-let context: "Admin" | "User" = "Admin";
+
+type Context = "Admin" | "Player";
 
 
 let connection: HubConnection;
@@ -44,52 +42,44 @@ function getUrlParams(): { [key: string]: string } {
 
 
 
-function writeGreetMsg(context: "User" | "Admin") {
-    if (context == "User") {
-        writeToNodeWithId("#adminMsg", `Connected as user`);
-        return;
+function writeGreetMsg(context: Context) {
+    switch (context) {
+        case "Admin":
+            writeToNodeWithId("#adminMsg", "Connected as Admin")
+            break;
+        case "Player":
+            writeToNodeWithId("#adminMsg", "Connected as Player")
+            break;
     }
-
-    const adminId = getCookie("AdminId")
-    writeToNodeWithId("#adminMsg", `Connected as admin: ${adminId}`)
 }
 
 
-async function connectAsAdmin(restoreSession: boolean) {
-    if (!restoreSession) {
-        deleteCookie("AdminId")
-    }
-
-    connection = new signalR.HubConnectionBuilder()
-        .withUrl("https://localhost:5001/hub?key=value")
-        .build();
-
-    setupConnectionCallBacks(connection)
-
-    try {
-        await connection.start();
-        const params = getUrlParams();
-        connection.send("verifyPlayerSession", params["session"], params["player"])
-    } catch (_) {
-        writeToNodeWithId("#adminMsg", "Could not connect")
-    }
-
-}
-
-async function connectAsPlayer() {
+async function connectToSession(restoreSession: boolean) {
     const params = getUrlParams();
     const player = params["player"];
     const session = params["session"];
 
-    if (!session || !player) return;
+    if (!restoreSession) {
+        deleteCookie("AdminId")
+    }
+
+    const hubUrl = player && session ? `?player=${player}&session=${session}`: "";
+    let url = "https://localhost:5001/hub" + hubUrl;
 
     connection = new signalR.HubConnectionBuilder()
-        .withUrl(`https://localhost:5001/hub?player=${params["player"]}&session={params["session"]}`)
+        .withUrl(url)
         .build();
 
-    setupConnectionCallBacks(connection)
+    setupConnectionCallBacks(connection);
+
+    try {
+        await connection.start();
+    } catch (_) {
+        writeToNodeWithId("#adminMsg", "Could not connect");
+    }
 
 }
+
 
 type Player = {
     url: string,
@@ -101,7 +91,6 @@ type Player = {
 function setupConnectionCallBacks(connection: signalR.HubConnection) {
     // called by server when players are added 
     connection.on("playersAdded", (players: Array<Player>) => {
-        console.log(players)
         const m = document.createElement("div");
 
         const links =
@@ -111,15 +100,13 @@ function setupConnectionCallBacks(connection: signalR.HubConnection) {
         divMessages?.appendChild(m);
     });
 
-    connection.on("verifiedPlayerSession", (isPlayer: boolean) => {
-        if (isPlayer) {
-            context = "User"
-        }
-        else {
-            context = "Admin"
-        }
-        writeGreetMsg(context);
-    });
+    connection.on("couldNotConnect", (reason: string) => {
+        writeToNodeWithId( "#adminMsg", `Could not connect: ${reason}`);
+    })
+
+    connection.on("verifiedSession", (type: Context) => {
+        writeGreetMsg(type);
+    })
 }
 
 
@@ -130,12 +117,11 @@ tbMessage?.addEventListener("keyup", (e: KeyboardEvent) => {
 });
 
 btnSend?.addEventListener("click", createPlayers);
-btnConnectAdmin?.addEventListener("click", () => connectAsAdmin(false));
-btnContAdmin?.addEventListener("click", () => connectAsAdmin(true));
 btnDebug?.addEventListener("click", () => connection.send("debug"))
+btnConnectAdmin?.addEventListener("click", () => connectToSession(false));
+btnContAdmin?.addEventListener("click", () => connectToSession(true));
 
 function createPlayers() {
-    console.log("hello");
     const countries: string[] = tbMessage!.value.split(",")
 
     const sessionId = getCookie("SessionId")
