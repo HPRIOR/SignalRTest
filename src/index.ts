@@ -9,7 +9,9 @@ const btnConnectAdmin: HTMLButtonElement | null = document.querySelector("#btnCo
 const btnContAdmin: HTMLButtonElement | null = document.querySelector("#btnContAdmin");
 const btnDebug: HTMLButtonElement | null = document.querySelector("#debug");
 const btnInput: HTMLButtonElement | null = document.querySelector("#inputBtn")
-const textInput:HTMLInputElement | null = document.querySelector("#msgInpText")
+const textInput: HTMLInputElement | null = document.querySelector("#msgInpText")
+const grpBtnInput: HTMLButtonElement | null = document.querySelector("#grpInputBtn")
+const grpTextInput: HTMLInputElement | null = document.querySelector("#grpMsgInpText")
 
 
 type Context = "Admin" | "Player";
@@ -21,7 +23,7 @@ function writeToNodeWithId(id: string, message: string) {
     const node: HTMLElement | null = document.querySelector(id);
     if (node) {
         node.innerHTML = message;
-    }else{
+    } else {
         console.log(`Could not find node ${id}`)
     }
 }
@@ -67,7 +69,7 @@ async function connectToSession(restoreSession: boolean) {
         deleteCookie("AdminId")
     }
 
-    const hubUrl = player && session ? `?player=${player}&session=${session}`: "";
+    const hubUrl = player && session ? `?player=${player}&session=${session}` : "";
     let url = "https://localhost:5001/hub" + hubUrl;
 
     connection = new signalR.HubConnectionBuilder()
@@ -105,7 +107,7 @@ function setupConnectionCallBacks(connection: signalR.HubConnection) {
     });
 
     connection.on("couldNotConnect", (reason: string) => {
-        writeToNodeWithId( "#adminMsg", `Could not connect: ${reason}`);
+        writeToNodeWithId("#adminMsg", `Could not connect: ${reason}`);
     })
 
     connection.on("verifiedSession", (type: Context) => {
@@ -129,7 +131,14 @@ btnDebug?.addEventListener("click", () => connection.send("debug"))
 btnConnectAdmin?.addEventListener("click", () => connectToSession(false));
 btnContAdmin?.addEventListener("click", () => connectToSession(true));
 btnInput?.addEventListener("click", () => {
-    connection.send("sendMessageToAdmin", getCookie("SessionId"),textInput?.value);
+    connection.send("sendMessageToAdmin", getCookie("SessionId"), textInput?.value);
+    textInput!.value = "";
+})
+grpBtnInput?.addEventListener("click", () => {
+    connection.send("SendMessageToGroup", getCookie("SessionId"), grpTextInput?.value);
+    console.log(getCookie("SessionId"))
+    console.log(grpTextInput?.value);
+    grpTextInput!.value = "";
 })
 
 function createPlayers() {
