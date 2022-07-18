@@ -135,9 +135,7 @@ btnInput?.addEventListener("click", () => {
     textInput!.value = "";
 })
 grpBtnInput?.addEventListener("click", () => {
-    connection.send("SendMessageToGroup", getCookie("SessionId"), grpTextInput?.value);
-    console.log(getCookie("SessionId"))
-    console.log(grpTextInput?.value);
+    connection.send("sendMessageToPlayers", getCookie("SessionId"), grpTextInput?.value);
     grpTextInput!.value = "";
 })
 
